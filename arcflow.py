@@ -180,7 +180,7 @@ class Task:
     def plus_subtask(self, subtask):
         # Adding subtasks.
         idx = len(self._subtasks) + 1
-        self._subtasks.append({"idx": idx, "name": subtask})
+        self._subtasks.append({"idx": idx, "name": subtask, "check": False})
 
 
 host = Host()  # Initialize detection for possible corruptions.
@@ -213,14 +213,6 @@ def create(group, task_name, opt_subtasks=False):
         new_group.group = new_task.task  # Add task to the group.
         groups.append(new_group.group)  # Add new group to the array.
 
-        # Optional subtasks.
-        if opt_subtasks:
-            if type(opt_subtasks) == list:
-                for subtask in opt_subtasks:
-                    new_task.plus_subtask(subtask)
-            else:
-                new_task.plus_subtask(opt_subtasks)
-
     # Existing group.
     elif type(group) == int:
         selected_group = groups[group - 1]["tasks"]
@@ -231,16 +223,13 @@ def create(group, task_name, opt_subtasks=False):
                         end=None,
                         subtasks=[])
 
-        # Optional subtasks.
-        if opt_subtasks:
-            if type(opt_subtasks) == list:
-                for subtask in opt_subtasks:
-                    new_task.plus_subtask(subtask)
-            else:
-                new_task.plus_subtask(opt_subtasks)
-
         # Assign task to the group.
         selected_group.append(new_task.task)
+
+    # Optional subtasks.
+    if opt_subtasks:
+        for subtask in opt_subtasks:
+            new_task.plus_subtask(subtask)
 
     # Bad values, raise error.
     else:
@@ -307,29 +296,22 @@ def task_modificator(group_idx, task_idx, mod, value):
         """
         Add one or more subtasks.
         """
-        if (type(value_) == list):
-            for subtask_name in value_:
-                new_idx = len(task["subtasks"]) + 1
-                subtask_object = {"idx": new_idx, "name": subtask_name}
-                task["subtasks"].append(subtask_object)
-        else:
+        for subtask_name in value_:
             new_idx = len(task["subtasks"]) + 1
-            subtask_object = {"idx": new_idx, "name": value_}
+            subtask_object = {
+                "idx": new_idx, "name": subtask_name, "check": False
+            }
             task["subtasks"].append(subtask_object)
 
     def delete_subtask(task=selected_task, idx_plus=value):
         """
         Delete one or more subtasks.
         """
-        if (type(idx_plus) == list):
-            idx_dec = 1
-            for idx in sorted(idx_plus):
-                del task["subtasks"][idx - idx_dec]
-                idx_dec += 1
-            task["subtasks"] = object_enum(task["subtasks"])
-        else:
-            del task["subtasks"][idx_plus - 1]
-            task["subtasks"] = object_enum(task["subtasks"])
+        idx_dec = 1
+        for idx in sorted(idx_plus):
+            del task["subtasks"][idx - idx_dec]
+            idx_dec += 1
+        task["subtasks"] = object_enum(task["subtasks"])
 
     def rename_subtask(task=selected_task, idx_value=value):
         """
@@ -337,7 +319,7 @@ def task_modificator(group_idx, task_idx, mod, value):
         """
         task["subtasks"][idx_value[0] - 1]["name"] = idx_value[1]
 
-    # Call appropriate function.
+    # Call appropriate inner function.
     if mod == "name":
         rename_task()
     elif mod == "state":
@@ -352,10 +334,45 @@ def task_modificator(group_idx, task_idx, mod, value):
 
 def multi_task_progress(gidx, idx_list, value):
     """
-    Multi-progress tasks.
+    Multi-progress tasks settings.
     """
     for _ in range(len(idx_list)):
         task_modificator(gidx, idx_list[_], "state", value)
+
+
+def task_mark(gidx, tidx):
+    """
+    Mark/unmark task as important.
+    """
+    task = groups[gidx - 1]["tasks"][tidx - 1]
+    if task["name"][:4] == "[!] ":
+        task["name"] = task["name"][4:]
+    else:
+        task["name"] = "[!] " + task["name"]
+
+
+def tick_subtask(gidx, tidx, sidx_list):
+    """
+    Label subtask as done or revert back to previous state.
+    """
+    task = groups[gidx - 1]["tasks"][tidx - 1]
+    if task["state"] == "done":
+        print(
+            "error: if parrent task is marked as done state of subtasks "
+            "are locked, if you want to change state of subtasks you need "
+            "to change parrent task state to 'pending' or 'in-progress'."
+        )
+        sys.exit(1)
+
+    for st in sidx_list:
+        try:
+            subtask = task["subtasks"][st - 1]
+            if subtask["check"]:
+                subtask["check"] = False
+            else:
+                subtask["check"] = True
+        except IndexError:
+            pass
 
 
 #######################
@@ -438,14 +455,17 @@ class Cosmetics:
         """
         When subtasks are displayed.
         """
-        subtask_format = self._max_str_length(subtask['name'], "subtask")
-        sh = 3 * '░'
-        lo = 13 * '░'
-        sq = f"{sh}{self.sq}{sh}{self.sq}{lo}{self.sq}{lo}{self.sq}"
-        if not last:
-            print(f"{4 * ' '}{sq} ├──{subtask_format}")
+        if subtask["check"]:
+            subtask["name"] = "✔ " + subtask["name"]
         else:
-            print(f"{4 * ' '}{sq} └──{subtask_format}")
+            subtask["name"] = "☐ " + subtask["name"]
+        subtask_format = self._max_str_length(subtask["name"], "subtask")
+
+        pretty = f"{3 * '░'}█{3 * '░'}█{13 * '░'}█{13 * '░'}█"
+        if not last:
+            print(f"{4 * ' '}{pretty} ├──{subtask_format}")
+        else:
+            print(f"{4 * ' '}{pretty} └──{subtask_format}")
 
     def group_print(self, group):
         """
@@ -579,16 +599,8 @@ def board(arg=False):
                     else:
                         Cosmetics().subtaskmeta(subtask)
 
-
-def task_mark(gidx, tidx):
-    """
-    Mark/unmark task as important.
-    """
-    task = groups[gidx - 1]["tasks"][tidx - 1]
-    if task["name"][:4] == "[!] ":
-        task["name"] = task["name"][4:]
-    else:
-        task["name"] = "[!] " + task["name"]
+    if len(groups) > 0:
+        Cosmetics().overall_statistics()
 
 
 def list_subtasks(gidx, tidx):
@@ -625,6 +637,10 @@ parser.add_argument(
 parser.add_argument(
     "--show", type=int, action="store", nargs="+",
     help="show group or task or subtask", metavar="<idx>"
+)
+parser.add_argument(
+    "--tick", type=int, action="store", nargs="+",
+    help="tick/untick subtask(s) as done", metavar="<idx>"
 )
 parser.add_argument(
     "--ls-sub", type=int, action="store", nargs=2,
@@ -743,6 +759,24 @@ def args_policy(cmd=args.command):
     """
     Raise errors on invalid arg syntax.
     """
+    for arg in vars(args):
+        # Check if there is user input with negative integer or zero.
+        current_arg = eval(f"args.{arg}")
+        if type(current_arg) == list:
+            for value in current_arg:
+                if type(value) == int:
+                    if value <= 0:
+                        raise ValueError(
+                            "error: args must be positive and gt than zero."
+                        )
+
+    if args.tick:
+        # User input must be at least 3 integers
+        if not len(args.tick) >= 3:
+            raise ValueError(
+                "error: --tick: option requires at least three args."
+            )
+
     if cmd == "add":
         if args.new == []:
             raise ValueError("error: --new: minimum two arg values.")
@@ -821,15 +855,6 @@ def args_policy(cmd=args.command):
                     "three arg values required."
                 )
 
-    for arg in vars(args):
-        # Check if there is user input with negative integer.
-        current_arg = eval(f"args.{arg}")
-        if type(current_arg) == list:
-            for value in current_arg:
-                if type(value) == int:
-                    if value < 0:
-                        raise ValueError("error: integers must be positive.")
-
 
 def confirm():
     """
@@ -865,6 +890,11 @@ def main():
 
     if args.mark:
         task_mark(args.mark[0], args.mark[1])
+        Storage("w", groups)  # Save changes.
+
+    if args.tick:
+        tick_subtask(args.tick[0], args.tick[1], args.tick[2:])
+        Storage("w", groups)  # Save changes.
 
     if args.ls_sub:
         list_subtasks(args.ls_sub[0], args.ls_sub[1])
@@ -923,7 +953,7 @@ def main():
         Storage("w", groups)
 
     if args.board == args.reset:
-        if args.command == args.mark == args.show == args.ls_sub:
+        if args.command == args.mark == args.show == args.tick == args.ls_sub:
             board()
 
 
