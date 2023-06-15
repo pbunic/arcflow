@@ -226,14 +226,14 @@ def create(group, task_name, opt_subtasks=False):
         # Assign task to the group.
         selected_group.append(new_task.task)
 
+    # Bad values, raise error.
+    else:
+        raise ValueError("Wrong input values.")
+
     # Optional subtasks.
     if opt_subtasks:
         for subtask in opt_subtasks:
             new_task.plus_subtask(subtask)
-
-    # Bad values, raise error.
-    else:
-        raise ValueError("Wrong input values.")
 
 
 def change_group_name(group_idx, new_name):
