@@ -18,9 +18,9 @@ json_storage = os.path.join(directory, "storage.json")
 current_date = datetime.now().strftime("%d-%b-%Y").upper()
 
 
-######################
-# PROGRAM PREPARATIONS
-######################
+##############
+# PREPARATIONS
+##############
 class Host:
     """
     Class for os-level corruption detections.
@@ -386,7 +386,6 @@ class Cosmetics:
         self.ANSI = ansi_support
         self.term_width = shutil.get_terminal_size().columns
         self.dyn_part_len = self.term_width - 36 - 8
-        self.sq = "█"
 
     def _max_str_length(self, string_array, type_):
         """
@@ -416,9 +415,9 @@ class Cosmetics:
 
     def taskmeta(self, task):
         """
-        Function for manipulating task properties.
+        Function for manipulating task properties and decoration.
         """
-        sq = self.sq
+        sq = "█"
         pending = "☐"
         inprog = "…"
         done = "✔"
@@ -430,7 +429,7 @@ class Cosmetics:
             task["name"] = f"☰ {task['name']}"
         elif task["state"] == "in-progress":
             symbol = f" {inprog} "
-            task["name"] = f"☢ {task['name']}"
+            task["name"] = f"⛶ {task['name']}"
         else:
             symbol = f" {done} "
             task["name"] = f"⚑ {task['name']}"
@@ -487,7 +486,7 @@ class Cosmetics:
                 done += 1
 
         total = pending + inprog + done
-        group_format = f"\n{4 * ' '}#{idx} {name}  [{done}/{total}]"
+        group_format = f"\n{4 * ' '}#{idx} {name} [{done}/{total}]"
         print(group_format)
 
     def headline(self):
@@ -496,7 +495,7 @@ class Cosmetics:
         length, second depends on terminal size. If ansi is supported
         headline is color inverted.
         """
-        fixed_part = " id         start          end      "
+        fixed_part = f" id{9 * ' '}start{10 * ' '}end{6 * ' '}"
         side_spaces = (self.dyn_part_len - len("task")) // 2
         dynamic_part = f"{side_spaces * ' '}task{side_spaces * ' '}"
         if self.ANSI:
@@ -533,14 +532,14 @@ class Cosmetics:
         print(f"\n{4*' '}[{done}/{total}] - {perc}% of all tasks complete.")
         if self.ANSI:
             print(
-                f"{4*' '}\033[4m[{done}] DONE\033[0m" +
-                f" • \033[4m[{inprog}] IN-PROGRESS\033[0m" +
+                f"{4*' '}\033[4m[{done}] DONE\033[0m"
+                f" • \033[4m[{inprog}] IN-PROGRESS\033[0m"
                 f" • \033[4m[{pending}] PENDING\033[0m\n"
             )
         else:
             print(
-                f"{4*' '}[{done}] DONE" +
-                f"• [{inprog}] IN-PROGRESS" +
+                f"{4*' '}[{done}] DONE"
+                f"• [{inprog}] IN-PROGRESS"
                 f"• [{pending}] PENDING\n"
             )
 
@@ -786,7 +785,7 @@ def args_policy(cmd=args.command):
             if args.group:
                 raise SyntaxError(
                     "error: -g/--group: can't be used with --new."
-                    )
+                )
         if args.assign:
             if not args.group:
                 raise SyntaxError(
