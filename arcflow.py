@@ -452,10 +452,13 @@ class Cosmetics:
 
     def subtaskmeta(self, subtask, last=False):
         """
-        When subtasks are displayed.
+        Subtask cosmetics.
         """
         if subtask["check"]:
-            subtask["name"] = "✔ " + subtask["name"]
+            if self.ANSI:
+                subtask["name"] = "✔ " + f"\033[9m{subtask['name']}\033[0m"
+            else:
+                subtask["name"] = "✔ " + subtask["name"]
         else:
             subtask["name"] = "☐ " + subtask["name"]
         subtask_format = self._max_str_length(subtask["name"], "subtask")
