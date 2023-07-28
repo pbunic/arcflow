@@ -1,7 +1,14 @@
 #!/usr/bin/python3
 
 """
-doc
+Single file program that works with python standard library.
+It's nice to pair with drop-down terminal like yakuake. Main purpose is to keep
+short-term task objectives terminal accessible, perfect for your project design
+guidelines and similar stuff.
+
+written by: Predrag Bunic (2023)
+github url: github.com/pbunic/arcflow
+license: GPL v3
 """
 
 import os
@@ -402,7 +409,7 @@ class Cosmetics:
         else:
             minus_len_subtask = max_subtask - len(string_array)
             if len(string_array) > max_subtask:
-                return f" {string_array[:minus_len_subtask - 3]}..."
+                return f" {string_array[:minus_len_subtask - 6]}..."
             return f" {string_array}"
 
     def _idx_format(self, idx):
@@ -432,7 +439,7 @@ class Cosmetics:
             task["name"] = f"⛶ {task['name']}"
         else:
             symbol = f" {done} "
-            task["name"] = f"⚑ {task['name']}"
+            task["name"] = f"⦿ {task['name']}"
 
         # start/end
         start = f" {task['start']} "
@@ -454,14 +461,15 @@ class Cosmetics:
         """
         Subtask cosmetics.
         """
+        subtask_format = self._max_str_length(subtask["name"], "subtask")
+        # print(f"_{subtask_format}_")
         if subtask["check"]:
             if self.ANSI:
-                subtask["name"] = "✔ " + f"\033[9m{subtask['name']}\033[0m"
+                subtask_format = " ✔ " + f"\033[9m{subtask_format[1:]}\033[0m"
             else:
-                subtask["name"] = "✔ " + subtask["name"]
+                subtask_format = " ✔ " + subtask_format[1:]
         else:
-            subtask["name"] = "☐ " + subtask["name"]
-        subtask_format = self._max_str_length(subtask["name"], "subtask")
+            subtask_format = " ☐ " + subtask_format[1:]
 
         pretty = f"{3 * '░'}█{3 * '░'}█{13 * '░'}█{13 * '░'}█"
         if not last:
